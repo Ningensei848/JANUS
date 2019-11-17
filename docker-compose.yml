@@ -1,0 +1,60 @@
+version: "3.7"
+
+services:
+  base:
+    container_name: base
+    build:
+      context: ./base
+    image: ningensei848/scrap:base
+  yahoo:
+    build: 
+      context: ./yahoo
+    image: ningensei848/scrap:yahoo
+    # command: ["python", "/server/scrap.py"]
+    command: ["bash", "-c", "bash /server/start_server.sh && bash"]
+    # コマンドを実行したあともコンテナが起動し続ける
+    tty: true
+    # このコンテナORホストマシンが再起動したときにこのコンテナを自動再起動する
+    restart: always
+    environment:
+      - DATA_VOLUME_YAHOO
+    volumes:
+      - ./data/yahoo:/server/$DATA_VOLUME_YAHOO
+      - ./log/yahoo:/var/log
+  clickworker:
+    build: 
+      context: ./clickworker
+    image: ningensei848/scrap:cwork
+    command: ["bash", "-c", "bash /server/start_server.sh && bash"]
+    tty: true
+    restart: always
+    environment:
+      - USERNAME_CWORK
+      - PASS_CWORK
+      - SERVICE_KEY_2CAPCHA
+      - GOOGLE_SITE_KEY_CWORK
+      - DATA_VOLUME_CwORK
+    volumes:
+      - ./data/clickworker:/server/$DATA_VOLUME_CwORK
+      - ./log/clickworker:/var/log
+  mturk:
+    build: 
+      context: ./mturk
+    image: ningensei848/scrap:mturk
+    # 検証用
+    command: ["python", "/server/scrap.py"]
+    # command: ["bash", "-c", "bash /server/start_server.sh && bash"]
+    tty: true
+    # restart: always
+    environment:
+      - USERNAME_MTURK
+      - PASS_MTURK
+      - SERVICE_KEY_2CAPCHA
+      - GOOGLE_SITE_KEY_MTURK
+      - DATA_VOLUME_MTURK
+    volumes:
+      - ./data/mturk:/server/$DATA_VOLUME_MTURK
+      - ./log/mturk:/var/log
+  # zbj:
+  #   build: ./yahoo
+  #   image: scrap:base

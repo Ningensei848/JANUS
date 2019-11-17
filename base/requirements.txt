@@ -1,0 +1,7 @@
+selenium
+tqdm
+requests
+pyvirtualdisplay
+beautifulsoup4
+lxml
+schedule
