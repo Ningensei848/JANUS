@@ -33,9 +33,9 @@ services:
       - PASS_CWORK
       - SERVICE_KEY_2CAPCHA
       - GOOGLE_SITE_KEY_CWORK
-      - DATA_VOLUME_CwORK
+      - DATA_VOLUME_CWORK
     volumes:
-      - ./data/clickworker:/server/$DATA_VOLUME_CwORK
+      - ./data/clickworker:/server/$DATA_VOLUME_CWORK
       - ./log/clickworker:/var/log
   mturk:
     build: 
