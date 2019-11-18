@@ -42,8 +42,8 @@ services:
       context: ./mturk
     image: ningensei848/scrap:mturk
     # 検証用
-    command: python /server/scrap.py >> /var/log/stdout.log 2>> /var/log/stderr.log
-    # command: ["bash", "-c", "bash /server/start_server.sh && bash"]
+    # command: python /server/scrap.py >> /var/log/stdout.log 2>> /var/log/stderr.log
+    command: ["bash", "-c", "bash /server/start_server.sh && bash"]
     tty: true
     restart: always
     environment:
