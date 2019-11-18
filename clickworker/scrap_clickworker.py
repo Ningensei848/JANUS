@@ -73,7 +73,7 @@ def loginService(pageurl, driver):
     fetch_url = "http://2captcha.com/res.php?key=" + service_key + "&action=get&id=" + captcha_id
 
     # response があるまでひたすら待つ…！
-    for i in tqdm(range(1, 50)):
+    for i in range(1, 50):
         sleep(5) # wait 5 sec.
         resp = requests.get(fetch_url)
         if resp.text[0:2] == 'OK':
