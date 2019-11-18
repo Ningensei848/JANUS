@@ -1,22 +1,34 @@
 import os
 import re
+import sys
 import json
 import subprocess
+
 from time import sleep
 from pathlib import Path
 from random import random
+from multiprocessing import Process
 from datetime import datetime, date, timezone, timedelta
 
 # need to pip install
 import requests
+from flask import Flask, jsonify, request, Response
 from tqdm import tqdm
 from bs4 import BeautifulSoup
 from selenium import webdriver
+from selenium.common import exceptions
 from pyvirtualdisplay import Display
 from selenium.webdriver.common.by import By
+from selenium.webdriver.support.ui import Select
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 
+# ---------------------------------------------------------
+def escapeBash(self):
+    command = ["exit", "1"]
+    completed_process = subprocess.run(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    print(completed_process.stdout.decode("utf8"))
+    print(completed_process.stderr.decode("utf8"))
 
 def initializeDriver():
 
@@ -45,175 +57,73 @@ def initializeDriver():
 
     return driver
 
+# サーバとのPOST通信に使う関数（使わないかも）----------------
+# flask サーバーのための魔法のコメント（2行）
+app = Flask(__name__)
+@app.route('/mturk',methods=["POST"])
+def index():
+    # JSON 以外がPOSTされたらエラーを吐く
+    if request.headers['Content-Type'] != 'application/json':
+        print(request.headers['Content-Type'], file=sys.stderr)
+        return flask.jsonify(res='error'), 400
+    # JSONがPOSTされたら...
+    if request.method == 'POST':
+        posted_json = json.loads(request.get_json()) # Get POSTed JSON
+        otp = posted_json['OTP']
+        os.environ['ONE_TIME_PASSWORD_MTURK'] = otp
+    return 
 
-def loginService(pageurl, driver):
+@app.errorhandler(400)
+@app.errorhandler(404)
+@app.errorhandler(500)
+def error_handler(error):
+    response = jsonify({ 
+                          "error": {
+                          "type": error.name, 
+                          "message": error.description 
+                          }
+                      })
+    return response, error.code
 
-    # config from ENVIRONMENT
-    username = os.environ.get('USERNAME_MTURK', 'default')
-    password = os.environ.get('PASS_MTURK', 'default')
-    service_key = os.environ.get('SERVICE_KEY_2CAPCHA', 'default')
-    google_site_key = os.environ.get('GOOGLE_SITE_KEY_MTURK', 'default')
-
-    # まずはログイン画面を読み込む
-    driver.get(pageurl)
-
-    # iframe 中のdisplay:none を無効化してtextareaを引きずり出している
-    driver.execute_script('var element=document.getElementById("g-recaptcha-response"); element.style.display="";')
-    url = "http://2captcha.com/in.php?key=" + service_key + "&method=userrecaptcha&googlekey=" + google_site_key + "&pageurl=" + pageurl 
-
-    # 上記urlを 2capchaのサーバにPOSTしている
-    resp = requests.post(url) 
-
-    # 応答待ち
-    if resp.text[0:2] != 'OK': 
-        quit('Service error. Error code:' + resp.text) 
-    captcha_id = resp.text[3:]
-
-    # Make a 15-20 seconds timeout then submit a HTTP GET request to our API URL: https://2captcha.com/res.php to get the result.
-    sleep(10)
-    fetch_url = "http://2captcha.com/res.php?key=" + service_key + "&action=get&id=" + captcha_id
-
-    # response があるまでひたすら待つ…！
-    for i in tqdm(range(1, 50)):
-        sleep(5) # wait 5 sec.
-        resp = requests.get(fetch_url)
-        if resp.text[0:2] == 'OK':
-            print('\n fetch OK.\n')
-            break
-    print('Google response token: ', resp.text[3:])
-
-    # input にusername, passwordを入力する
-    driver.find_element_by_id('username').send_keys(username)
-    sleep(10 * random())
-    driver.find_element_by_id('password').send_keys(password)
-    sleep(10 * random())
-
-    # textareaにトークンを入力する →　送信する
-    driver.find_element_by_id('g-recaptcha-response').send_keys(resp.text[3:])
-    sleep(10 * random())
-
-    # login ボタンを押して送信する
-    loginButton = driver.find_element_by_xpath("//input[@name='commit'][@type='submit']")
-    driver.execute_script("arguments[0].click();", loginButton)
-    sleep(10 * random())
-
-    # print(driver.page_source)
-    print(driver.current_url)
-
-# date, datetimeの変換関数
-def json_serial(obj):
-    # 日付型の場合には、文字列に変換します
-    if isinstance(obj, (datetime, date)):
-        return obj.isoformat()
-    # 上記以外はサポート対象外.
-    raise TypeError ("Type %s not serializable" % type(obj))
-
-
-def outputJSON(json_list):
-
-    tz_jst = timezone(timedelta(hours=9))
-
-    current_dir = Path.cwd()
-    volume = os.environ.get('DATA_VOLUME_CwORK', 'jobs')
-    target_dir = current_dir / volume / datetime.now(tz_jst).strftime('%Y%m%d')
-    target_dir.mkdir(exist_ok=True)
-    filepath = target_dir / '{}.json'.format(datetime.now(tz_jst).strftime('%Y%m%d_%H%M%S'))
-
-    # json_list が空かどうかでシステムの機能が判定できる
-    if json_list:
-        status = 'OK'
-    else:
-        status = 'failure'
-    
-    temp_dict = {
-        'service': 'clickworker',
-        'timestamp': datetime.now(tz_jst).isoformat(timespec='seconds'),
-        'status': status,
-        'content': json_list
+# OAUTH: オーオースと読むらしい
+def otpOAUTH(driver):
+    # for multiprocess.Process
+    arguments = {
+        'debug': False,
+        'host': '0.0.0.0',
+        'port': 8765,
     }
+    # app.run(debug=False, host='0.0.0.0', port=8765)
+    server = Process(target=app.run, kwargs=arguments)
+    server.start()
+    otp = ''
+    for _ in range(15):
+        sleep(30)
+        if os.environ['ONE_TIME_PASSWORD_MTURK']:
+            otp = os.environ['ONE_TIME_PASSWORD_MTURK']
+            os.environ['ONE_TIME_PASSWORD_MTURK'] = ''
+            break
+        continue
 
-    with open(filepath, mode='w') as f:
-        f.write(json.dumps(temp_dict, indent=4, ensure_ascii=False))
+    server.terminate()
+    server.join()  # processが完全に終了するまで待つ
 
-
-def extractJobInfo(job):
-    """
-    job: `bs4.element.Tag`
-    return: JSONize dict
-    """
-    # meta-infos のかたまりを抽出しておく
-    meta_info = job.find(name='div', class_='meta-infos')
-
-    tagset = meta_info.find(name='div', class_='twocolumns').find_all('p')
-    temp_list = ['remainingtasks', 'timelimit', 'deadline']
-    # 内包表記で辞書を作る
-    return_dict = {key:''.join([x.strip() for x in tag.text.split(':')[1:]]) for key, tag in zip(temp_list, tagset)}
-
-    # 例外処理：時折ボーナスが含まれていることがある
-    span_in_price = meta_info.find(name='div', class_='price').find(name='span')
-    if span_in_price is None:
-        return_dict['bonus'] = None
-    else:
-        span = span_in_price.extract()
-        # `Bonus included!` 以外のパターンもあるかもしれない（要検証）
-        return_dict['bonus'] = span.text.strip()
-
-    # 例外処理：タスクが掲載されてすぐは文頭に「NEW」と表示される
-    brandnew_in_title = job.find(name='h3').find(name='span')
-    if brandnew_in_title is None:
+    if len(otp) == 0:
+        print('One Time Password has not been received!', file=sys.stderr)
+        sys.exit('One Time Password has not been received!', file=sys.stderr)
         pass
     else:
-        span = brandnew_in_title.extract()  # title(h3) 内の`span` タグを除去
-
-    # 辞書に追記していく
-    return_dict['title'] = job.find(name='h3').text.strip()
-    return_dict['id'] = job['id']
-    return_dict['short-instruction'] = job.find(name='p', class_='short-instruction').text.strip()
-    return_dict['price'] = meta_info.find(name='div', class_='price').text.strip()
-
-    return json.dumps(return_dict)
-
-
-def parseHTML(html):
-    """
-    args html: str as html
-    return: list of JSON
-    """
-
-    soup = BeautifulSoup(html, 'lxml')
-    jobs_json_list = [extractJobInfo(job) for job in soup.find_all(name='div', class_='job') if 'id' in job.attrs]
-
-    return jobs_json_list
-
-
-def getJobsContent(driver):
-
-    sleep(30)  # ewbdriverWaitの場合はどうなんだろう？
-
-    html = driver.page_source
-    soup = BeautifulSoup(html, 'lxml')
-    job_tags = soup.find(name='div', id='jobs_content').find_all(name='div', class_='job')
-
-    if job_tags:  # ... is not None
-        jobs_html_list = [tag.prettify() for tag in job_tags]
-        html = '<!DOCTYPE html><html><head></head><body>{}</body></html>'.format(''.join(jobs_html_list))
-        pageInfo_list = parseHTML(html)
-    else:
-        pageInfo_list = []
-
-    # ファイルに出力
-    outputJSON(pageInfo_list)
-
-
-def escapeBash(self):
-    command = ["exit", "1"]
-    completed_process = subprocess.run(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-    print(completed_process.stdout.decode("utf8"))
-    print(completed_process.stderr.decode("utf8"))
-
+        # <input type="text" maxlength="6" required="" name="code" class="a-input-text a-span12 cvf-widget-input cvf-widget-input-code">
+        driver.find_element_by_xpath("//input[@type='text'][@name='code'][@maxlength='6']").send_keys(otp)
+        sleep(10 * random())
+        driver.execute_script("arguments[0].click();", loginButton)
+        sleep(10 * random())
+    
+    return driver
 
 # ---------------------------------------------------------
 
+# debug 用の関数
 def outputHTML(html):
     
     tz_jst = timezone(timedelta(hours=9))
@@ -226,7 +136,6 @@ def outputHTML(html):
 
     with open(filepath, mode='w') as f:
         f.write(html)
-
 
 def login(pageurl, driver):
     # config from ENVIRONMENT
@@ -249,15 +158,94 @@ def login(pageurl, driver):
     driver.execute_script("arguments[0].click();", loginButton)
     sleep(30 * random())
 
-    # ワンタイムパスワードの入力画面へ進む
-    driver.find_element_by_id('continue').submit()
-    sleep(30 * random())    
+    # for debug
+    # print(driver.current_url)
+    # outputHTML(driver.page_source)
+    sleep(30 * random())
 
+    try:
+        # ワンタイムパスワードの入力画面へ進む
+        driver.find_element_by_xpath('//*[text()=continue]').submit()
+        sleep(30 * random())
+        otpOAUTH(driver)        
+    except exceptions.NoSuchElementException as nse:
+        sleep(30 * random())
+        print(str(nse), file=sys.stderr)
 
-    # print(driver.page_source)
-    print(driver.current_url)
+    print(driver.current_url, file=sys.stderr)
 
+    return driver
 
+def countPages(driver):
+
+    # クエリからページ数とコンテンツ数を指定して対象とするページの一覧を集める
+    rootURL = 'https://worker.mturk.com/?page_number=1&page_size=100'
+    driver.get(rootURL)
+    sleep(20 * random())
+    html = driver.page_source
+    sleep(10 * random())
+
+    # data-react-class="require('reactComponents/navigation/Pagination')['default']"
+    soup = BeautifulSoup(html, 'lxml')
+    target = "require('reactComponents/navigation/Pagination')['default']"
+
+    # outputHTML(html)
+
+    tag_obj = soup.find(name='div', attrs={'data-react-class': target})  # data-react-class でオブジェクトを取得して...
+    react_data = json.loads(tag_obj['data-react-props'])  # data-react-propsの属性値をとる！
+    lastPage = react_data['lastPage']
+
+    page_list = ['https://worker.mturk.com/?page_number={}&page_size=100'.format(i) for i in range(1, lastPage + 1)]
+
+    return page_list
+
+def outputJSON(json_dict):
+
+    tz_jst = timezone(timedelta(hours=9))
+
+    current_dir = Path.cwd()
+    volume = os.environ.get('DATA_VOLUME_MTURK', 'hits')
+    target_dir = current_dir / volume / datetime.now(tz_jst).strftime('%Y%m%d')
+    target_dir.mkdir(exist_ok=True)
+    filepath = target_dir / '{}.json'.format(datetime.now(tz_jst).strftime('%Y%m%d_%H%M%S'))
+
+    if len(json_dict['bodyData']) == 0:
+        status = 'failure'
+    else:
+        status = 'OK' 
+
+    temp_dict = {
+        'service': 'AmazonMechanicalTurk',
+        'timestamp': datetime.now(tz_jst).isoformat(timespec='seconds'),
+        'status': status,
+        'content': json_dict
+    }    
+
+    with open(filepath, mode='w') as f:
+        f.write(json.dumps(temp_dict, indent=4, ensure_ascii=False))
+
+def getHITContent(page_list):
+
+    json_dict = {}
+    json_dict['bodyData'] = []
+
+    for url in tqdm(page_list, desc='Total {} pages: '.format(len(page_list))):
+
+        driver.get(url)
+        sleep(20 * random())
+        html = driver.page_source
+        sleep(10 * random())   
+
+        soup = BeautifulSoup(html, 'lxml')
+        # data-react-class="require('reactComponents/hitSetTable/HitSetTable')['default']"
+        target = "require('reactComponents/hitSetTable/HitSetTable')['default']"
+        tag_obj = soup.find(name='div', attrs={'data-react-class': target})  # data-react-class でオブジェクトを取得して...
+        react_data = json.loads(tag_obj['data-react-props'])  # data-react-propsの属性値をとる！
+
+        json_dict['bodyData'].extend(react_data['bodyData'])
+        json_dict['tableConfig'] = react_data['tableConfig']
+
+    return json_dict  # dict
 
 # ここから本番 -------------------------------------------
 
@@ -270,16 +258,16 @@ tz_jst = timezone(timedelta(hours=9))
 try:
     driver = initializeDriver()
     login(pageurl, driver)
-    outputHTML(driver.page_source)
-    # loginService(pageurl, driver)
+    page_list = countPages(driver)
+    json_dict = getHITContent(page_list)
+    outputJSON(json_dict)
 
-    # getJobsContent(driver)
     timestamp = datetime.now(tz_jst).isoformat(timespec='seconds')
     message = 'DATA_VOLUME_MTURK: {}'.format(os.environ.get('DATA_VOLUME_MTURK', 'ENV is not configured!'))
     print(timestamp + '...' + message)
 
 except Exception as e:
-    print(datetime.now(tz_jst).isoformat(timespec='seconds'))
-    print('USER EXCEPTION ! : ' + e)
+    print(datetime.now(tz_jst).isoformat(timespec='seconds'), file=sys.stderr)
+    print('USER EXCEPTION ! : ' + e, file=sys.stderr)
     driver.quit()
     escapeBash()

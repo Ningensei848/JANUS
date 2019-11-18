@@ -18,4 +18,3 @@ RUN chmod 755 /etc/cron.d
 # ubuntu 再起動時に実行するコマンドを`/etc/rc.local`においておく(最初の起動時と共通スクリプト)
 # COPY ./reboot_config.sh /etc/rc.local
 # RUN chmod 755 /etc/rc.local
-
