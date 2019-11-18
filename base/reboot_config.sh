@@ -4,7 +4,7 @@ service cron start
 sleep 10
 
 # cronjob settings here!
-cronjob='*/5 * * * * root /bin/bash /server/cron_job.sh'
+cronjob='*/15 * * * * root /bin/bash /server/cron_job.sh'
 
 # ~/.bashrc に変数が含まれていなかったらenvから追記する
 cronfile=/etc/cron.d/cron_cwork
