@@ -40,7 +40,7 @@ RUN wget --no-check-certificate https://dl.google.com/linux/linux_signing_key.pu
     && apt-key add linux_signing_key.pub \
     && echo 'deb [arch=amd64] http://dl.google.com/linux/chrome/deb/ stable main' | tee /etc/apt/sources.list.d/google-chrome.list \
     && : "cf. https://www.ubuntuupdates.org/package/google_chrome/stable/main/base/google-chrome-stable" \
-    && apt -y update && apt install -y --no-install-recommends google-chrome-stable=78.0.3904.97-1 \
+    && apt -y update && apt install -y --no-install-recommends google-chrome-stable \
     build-essential zlib1g-dev libncurses5-dev libgdbm-dev libnss3-dev \
     libssl-dev libreadline-dev libffi-dev wget google-chrome-stable \
     && apt clean && rm -r /var/lib/apt/lists/* 

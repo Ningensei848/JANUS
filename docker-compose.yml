@@ -44,11 +44,12 @@ services:
     # 検証用
     # command: python /server/scrap.py >> /var/log/stdout.log 2>> /var/log/stderr.log
     command: ["bash", "-c", "bash /server/start_server.sh && bash"]
-    tty: true
-    restart: always
+    # tty: true
+    # restart: always
     environment:
       - USERNAME_MTURK
       - PASS_MTURK
+      - SERVICE_KEY_2CAPCHA
       - DATA_VOLUME_MTURK
     volumes:
       - ./data/mturk:/server/$DATA_VOLUME_MTURK

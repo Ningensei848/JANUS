@@ -24,6 +24,94 @@ from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 
 # ---------------------------------------------------------
+
+def outputImage(url):
+    current_dir = Path.cwd()
+    volume = os.environ.get('DATA_VOLUME_MTURK', 'hits')
+    target_dir = current_dir / volume / datetime.now(tz_jst).strftime('%Y%m%d') / 'img'
+    target_dir.mkdir(exist_ok=True)
+    filepath = target_dir / 'captchaImage.jpg'
+    
+    res = requests.get(url, stream=True)
+    print(type(res.content))
+
+    if res.status_code == 200:
+        with open(filepath, 'wb') as file:
+            for chunk in res.iter_content(chunk_size=1024):
+                file.write(chunk)
+
+    return filepath
+
+def pass2captcha(driver):
+    
+    # config from ENVIRONMENT
+    username = os.environ.get('USERNAME_MTURK', 'default')
+    password = os.environ.get('PASS_MTURK', 'default')
+    service_key = os.environ.get('SERVICE_KEY_2CAPCHA', 'default')
+
+    html = driver.page_source
+    sleep(10 * random())
+    soup = BeautifulSoup(html, 'lxml')
+    captcha_body = soup.find(name='div', id='image-captcha-section')
+
+    outputHTML(html, tag="confirmImg")
+
+    if captcha_body is None:
+        # print('image-captcha-section is not found.\n')
+        return driver
+
+    instruction = captcha_body.find(name='h4').text.strip()
+    imgURL = captcha_body.find(name='img', id='auth-captcha-image')['src']
+
+    method = 'post'  # defines that you're sending an image with multipart form
+    url = "http://2captcha.com/in.php?key=" + service_key + "&method={}".format(method) + "&textinstructions={}".format(instruction)
+    filepath = outputImage(imgURL)
+    files = {'file': open(filepath, 'rb')}
+    data = {'key': service_key, 'method': 'post'}
+    resp = requests.post(url, files=files, data=data)    
+    print('resp is below:\n')
+    print(resp.text)
+
+    # 応答待ち
+    if resp.text[0:2] != 'OK': 
+        quit('Service error. Error code:' + resp.text) 
+    captcha_id = resp.text[3:]
+
+    # Make a 15-20 seconds timeout then submit a HTTP GET request to our API URL: https://2captcha.com/res.php to get the result.
+    sleep(10)
+    fetch_url = "http://2captcha.com/res.php?key=" + service_key + "&action=get&id=" + captcha_id
+    
+    # response があるまでひたすら待つ…！
+    for i in range(1, 50):
+        sleep(5) # wait 5 sec.
+        resp = requests.get(fetch_url)
+        if resp.text[0:2] == 'OK':
+            print('\n fetch OK.\n')
+            break
+        else:
+            print(resp)
+
+    print(resp)
+
+    # input にusername, passwordを入力する
+    driver.find_element_by_id('ap_email').clear()
+
+    driver.find_element_by_id('ap_email').send_keys(username)
+    print('finding ap_email...')
+    sleep(10 * random())
+    driver.find_element_by_id('ap_password').send_keys(password)
+    print('finding ap_passowrd...')
+    sleep(10 * random())
+    driver.find_element_by_id('auth-captcha-guess').send_keys(resp.text[3:])
+    print('finding submit button ...')
+    sleep(10 * random())
+    loginButton = driver.find_element_by_id('signInSubmit')
+    driver.execute_script("arguments[0].click();", loginButton)
+    sleep(10 * random())
+    print(driver.current_url)
+
+    return driver
+
 def escapeBash(self):
     command = ["exit", "1"]
     completed_process = subprocess.run(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
@@ -116,6 +204,7 @@ def otpOAUTH(driver):
         # <input type="text" maxlength="6" required="" name="code" class="a-input-text a-span12 cvf-widget-input cvf-widget-input-code">
         driver.find_element_by_xpath("//input[@type='text'][@name='code'][@maxlength='6']").send_keys(otp)
         sleep(10 * random())
+        loginButton = driver.find_element_by_xpath('//*[text()=continue]')
         driver.execute_script("arguments[0].click();", loginButton)
         sleep(10 * random())
     
@@ -124,7 +213,7 @@ def otpOAUTH(driver):
 # ---------------------------------------------------------
 
 # debug 用の関数
-def outputHTML(html):
+def outputHTML(html, tag=""):
     
     tz_jst = timezone(timedelta(hours=9))
 
@@ -132,47 +221,67 @@ def outputHTML(html):
     volume = os.environ.get('DATA_VOLUME_MTURK', 'hits')
     target_dir = current_dir / volume / datetime.now(tz_jst).strftime('%Y%m%d')
     target_dir.mkdir(exist_ok=True)
-    filepath = target_dir / '{}.html'.format(datetime.now(tz_jst).strftime('%Y%m%d_%H%M%S'))
+    if len(tag) != 0:
+        filepath = target_dir / '{}_{}.html'.format(datetime.now(tz_jst).strftime('%Y%m%d_%H%M%S'), tag)
+    else:
+        filepath = target_dir / '{}.html'.format(datetime.now(tz_jst).strftime('%Y%m%d_%H%M%S'))
 
     with open(filepath, mode='w') as f:
         f.write(html)
 
-def login(pageurl, driver):
+def login(pageurl, driver, flag=True):
     # config from ENVIRONMENT
     username = os.environ.get('USERNAME_MTURK', 'default')
     password = os.environ.get('PASS_MTURK', 'default')
-    service_key = os.environ.get('SERVICE_KEY_2CAPCHA', 'default')
-    google_site_key = os.environ.get('GOOGLE_SITE_KEY_MTURK', 'default')
 
     # まずはログイン画面を読み込む
     driver.get(pageurl)
+    sleep(10 * random())
     # input にusername, passwordを入力する
     driver.find_element_by_id('ap_email').send_keys(username)
     sleep(10 * random())
     driver.find_element_by_id('ap_password').send_keys(password)
-    sleep(10 * random())
+    sleep(20 * random())
+    print('email and pass are ready!')
 
+    print('Trying capcha ...\n')
+    pass2captcha(driver)
     # login ボタンを押して送信する
     # loginButton = driver.find_element_by_xpath("//input[@name='commit'][@type='submit']")
     loginButton = driver.find_element_by_id('signInSubmit')
     driver.execute_script("arguments[0].click();", loginButton)
     sleep(30 * random())
-
     # for debug
-    # print(driver.current_url)
-    # outputHTML(driver.page_source)
-    sleep(30 * random())
+    print('login button has push.\n')
+    outputHTML(driver.page_source, tag="afterFirstPush")
+
+    soup = BeautifulSoup(driver.page_source, 'lxml')
 
     try:
-        # ワンタイムパスワードの入力画面へ進む
-        driver.find_element_by_xpath('//*[text()=continue]').submit()
-        sleep(30 * random())
-        otpOAUTH(driver)        
-    except exceptions.NoSuchElementException as nse:
-        sleep(30 * random())
-        print(str(nse), file=sys.stderr)
 
-    print(driver.current_url, file=sys.stderr)
+        if soup.find(name='div', id='image-captcha-section'):
+            for _ in tqdm(range(10)):
+                pass2captcha(driver)
+            outputHTML(driver.page_source, tag="afterCaptchaLoop")
+        elif soup.find(name='input', id='continue'):            
+            # ワンタイムパスワードの入力画面へ進む
+            print('Trying OTP ...\n')
+            continueButton = driver.find_element_by_id('continue')
+            # driver.find_element_by_xpath('//*[text()=continue]').submit()
+            driver.execute_script("arguments[0].click();", continueButton)
+            sleep(30 * random())
+            otpOAUTH(driver)
+        else:
+            print('Login successed ??')
+            print(driver.current_url)
+            pass
+
+    except Exception as e:
+        print('login failed ...\n')
+        print(e)
+        outputHTML(driver.page_source, tag="loginFailed")
+        print(driver.current_url)
+        sys.exit()
 
     return driver
 
@@ -183,6 +292,7 @@ def countPages(driver):
     driver.get(rootURL)
     sleep(20 * random())
     html = driver.page_source
+    print(driver.current_url)
     sleep(10 * random())
 
     # data-react-class="require('reactComponents/navigation/Pagination')['default']"
@@ -258,6 +368,7 @@ tz_jst = timezone(timedelta(hours=9))
 try:
     driver = initializeDriver()
     login(pageurl, driver)
+    outputHTML(driver.page_source, tag="afterLogin")
     page_list = countPages(driver)
     json_dict = getHITContent(page_list)
     outputJSON(json_dict)
@@ -269,5 +380,6 @@ try:
 except Exception as e:
     print(datetime.now(tz_jst).isoformat(timespec='seconds'), file=sys.stderr)
     print('USER EXCEPTION ! : ' + e, file=sys.stderr)
+    outputHTML(driver.page_source, tag="anyExceptions")
     driver.quit()
     escapeBash()
