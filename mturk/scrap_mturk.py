@@ -33,7 +33,6 @@ def outputImage(url):
     filepath = target_dir / 'captchaImage.jpg'
     
     res = requests.get(url, stream=True)
-    print(type(res.content))
 
     if res.status_code == 200:
         with open(filepath, 'wb') as file:
@@ -42,23 +41,17 @@ def outputImage(url):
 
     return filepath
 
-def pass2captcha(driver):
+def getCaptchaCode(html):
     
     # config from ENVIRONMENT
     username = os.environ.get('USERNAME_MTURK', 'default')
     password = os.environ.get('PASS_MTURK', 'default')
     service_key = os.environ.get('SERVICE_KEY_2CAPCHA', 'default')
 
-    html = driver.page_source
-    sleep(10 * random())
     soup = BeautifulSoup(html, 'lxml')
     captcha_body = soup.find(name='div', id='image-captcha-section')
 
     outputHTML(html, tag="confirmImg")
-
-    if captcha_body is None:
-        # print('image-captcha-section is not found.\n')
-        return driver
 
     instruction = captcha_body.find(name='h4').text.strip()
     imgURL = captcha_body.find(name='img', id='auth-captcha-image')['src']
@@ -68,9 +61,7 @@ def pass2captcha(driver):
     filepath = outputImage(imgURL)
     files = {'file': open(filepath, 'rb')}
     data = {'key': service_key, 'method': 'post'}
-    resp = requests.post(url, files=files, data=data)    
-    print('resp is below:\n')
-    print(resp.text)
+    resp = requests.post(url, files=files, data=data) 
 
     # 応答待ち
     if resp.text[0:2] != 'OK': 
@@ -89,29 +80,12 @@ def pass2captcha(driver):
             print('\n fetch OK.\n')
             break
         else:
-            print(resp)
+            print(resp.text)
 
-    print(resp)
+    captcha_code = resp.text[3:]
 
-    # input にusername, passwordを入力する
-    driver.find_element_by_id('ap_email').clear()
-
-    driver.find_element_by_id('ap_email').send_keys(username)
-    print('finding ap_email...')
-    sleep(10 * random())
-    driver.find_element_by_id('ap_password').send_keys(password)
-    print('finding ap_passowrd...')
-    sleep(10 * random())
-    driver.find_element_by_id('auth-captcha-guess').send_keys(resp.text[3:])
-    print('finding submit button ...')
-    sleep(10 * random())
-    loginButton = driver.find_element_by_id('signInSubmit')
-    driver.execute_script("arguments[0].click();", loginButton)
-    sleep(10 * random())
-    print(driver.current_url)
-
-    return driver
-
+    return captcha_code
+  
 def escapeBash(self):
     command = ["exit", "1"]
     completed_process = subprocess.run(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
@@ -173,8 +147,7 @@ def error_handler(error):
                       })
     return response, error.code
 
-# OAUTH: オーオースと読むらしい
-def otpOAUTH(driver):
+def getOTP():
     # for multiprocess.Process
     arguments = {
         'debug': False,
@@ -187,28 +160,18 @@ def otpOAUTH(driver):
     otp = ''
     for _ in range(15):
         sleep(30)
-        if os.environ['ONE_TIME_PASSWORD_MTURK']:
+        if len(os.environ['ONE_TIME_PASSWORD_MTURK']):
             otp = os.environ['ONE_TIME_PASSWORD_MTURK']
             os.environ['ONE_TIME_PASSWORD_MTURK'] = ''
+            server.terminate()
+            server.join()  # processが完全に終了するまで待つ
             break
-        continue
-
-    server.terminate()
-    server.join()  # processが完全に終了するまで待つ
 
     if len(otp) == 0:
         print('One Time Password has not been received!', file=sys.stderr)
         sys.exit('One Time Password has not been received!', file=sys.stderr)
-        pass
-    else:
-        # <input type="text" maxlength="6" required="" name="code" class="a-input-text a-span12 cvf-widget-input cvf-widget-input-code">
-        driver.find_element_by_xpath("//input[@type='text'][@name='code'][@maxlength='6']").send_keys(otp)
-        sleep(10 * random())
-        loginButton = driver.find_element_by_xpath('//*[text()=continue]')
-        driver.execute_script("arguments[0].click();", loginButton)
-        sleep(10 * random())
     
-    return driver
+    return otp
 
 # ---------------------------------------------------------
 
@@ -229,7 +192,7 @@ def outputHTML(html, tag=""):
     with open(filepath, mode='w') as f:
         f.write(html)
 
-def login(pageurl, driver, flag=True):
+def login(pageurl, driver):
     # config from ENVIRONMENT
     username = os.environ.get('USERNAME_MTURK', 'default')
     password = os.environ.get('PASS_MTURK', 'default')
@@ -237,51 +200,69 @@ def login(pageurl, driver, flag=True):
     # まずはログイン画面を読み込む
     driver.get(pageurl)
     sleep(10 * random())
-    # input にusername, passwordを入力する
-    driver.find_element_by_id('ap_email').send_keys(username)
-    sleep(10 * random())
-    driver.find_element_by_id('ap_password').send_keys(password)
-    sleep(20 * random())
-    print('email and pass are ready!')
+    html = driver.page_source
+    soup = BeautifulSoup(html, 'lxml')
 
-    print('Trying capcha ...\n')
-    pass2captcha(driver)
-    # login ボタンを押して送信する
-    # loginButton = driver.find_element_by_xpath("//input[@name='commit'][@type='submit']")
-    loginButton = driver.find_element_by_id('signInSubmit')
-    driver.execute_script("arguments[0].click();", loginButton)
-    sleep(30 * random())
+    outputHTML(html, tag='beforeInputs')
+
+    # email, passwordの入力欄があれば、クリアしてから入力する
+    if soup.find(name='input', id='ap_email'):
+        driver.find_element_by_id('ap_email').clear()
+        sleep(10 * random())
+        driver.find_element_by_id('ap_email').send_keys(username)
+        sleep(10 * random())
+    if soup.find(name='input', id='ap_password'):
+        driver.find_element_by_id('ap_password').clear()
+        sleep(10 * random())
+        driver.find_element_by_id('ap_password').send_keys(password)
+        sleep(10 * random())
+    # captchaがあればそれも入力
+    if soup.find(name='div', id='image-captcha-section'):
+        captchaCode = getCaptchaCode(html)
+        driver.find_element_by_id('image-captcha-section').send_keys(captchaCode)
+        sleep(10 * random())
+
+    # ボタンを押して送信したい
+    if soup.find(name='input', id='signInSubmit'):
+        print('Trying button submit ...\n')
+        loginButton = driver.find_element_by_id('signInSubmit')
+        driver.execute_script("arguments[0].click();", loginButton)
+        sleep(30 * random())
+    elif soup.find(name='input', id='continue'):
+        print('Trying OTP ...\n')
+        continueButton = driver.find_element_by_id('continue')
+        driver.execute_script("arguments[0].click();", continueButton)
+        sleep(30 * random())
+    
+    outputHTML(html, tag='afterSend')
+
+    # ----------- 状況によって、CaptchaかOTPか変化する（どちらが先にくるかわからない）
     # for debug
-    print('login button has push.\n')
-    outputHTML(driver.page_source, tag="afterFirstPush")
+    print('button has push.\n')
+    outputHTML(driver.page_source, tag="afterPush")
 
-    soup = BeautifulSoup(driver.page_source, 'lxml')
+    html = driver.page_source
+    soup = BeautifulSoup(html, 'lxml')
 
-    try:
-
-        if soup.find(name='div', id='image-captcha-section'):
-            for _ in tqdm(range(10)):
-                pass2captcha(driver)
-            outputHTML(driver.page_source, tag="afterCaptchaLoop")
-        elif soup.find(name='input', id='continue'):            
-            # ワンタイムパスワードの入力画面へ進む
-            print('Trying OTP ...\n')
-            continueButton = driver.find_element_by_id('continue')
-            # driver.find_element_by_xpath('//*[text()=continue]').submit()
-            driver.execute_script("arguments[0].click();", continueButton)
-            sleep(30 * random())
-            otpOAUTH(driver)
-        else:
-            print('Login successed ??')
-            print(driver.current_url)
-            pass
-
-    except Exception as e:
-        print('login failed ...\n')
-        print(e)
-        outputHTML(driver.page_source, tag="loginFailed")
-        print(driver.current_url)
-        sys.exit()
+    # Captchaを提示された場合
+    if soup.find(name='div', id='image-captcha-section'):
+        login(driver.current_url, driver)
+    # OTPを要求された場合
+    elif soup.find(name='input', maxlength='6'):  
+        # ワンタイムパスワードの入力画面へ進む
+        otpCode = getOTP()
+        driver.find_element_by_xpath("//input[@type='text'][@name='code'][@maxlength='6']").send_keys(otpCode)
+        # continue ボタンを押す
+        continueButton = driver.find_element_by_id('continue')
+        driver.execute_script("arguments[0].click();", continueButton)
+        sleep(30 * random())
+    elif soup.find(name='input', id='continue'):
+        # continue ボタンを押す
+        login(driver.current_url, driver)
+    
+    if soup.find(name='a', href='https://www.amazon.com'):
+        driver.find_element_by_xpath("//a[@href='{}']".format('https://www.amazon.com')).click
+        sleep(10 * random())
 
     return driver
 
@@ -292,14 +273,13 @@ def countPages(driver):
     driver.get(rootURL)
     sleep(20 * random())
     html = driver.page_source
+    outputHTML(html, tag='inCountingPages')
     print(driver.current_url)
     sleep(10 * random())
 
     # data-react-class="require('reactComponents/navigation/Pagination')['default']"
     soup = BeautifulSoup(html, 'lxml')
     target = "require('reactComponents/navigation/Pagination')['default']"
-
-    # outputHTML(html)
 
     tag_obj = soup.find(name='div', attrs={'data-react-class': target})  # data-react-class でオブジェクトを取得して...
     react_data = json.loads(tag_obj['data-react-props'])  # data-react-propsの属性値をとる！
