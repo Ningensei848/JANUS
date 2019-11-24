@@ -6,7 +6,26 @@ services:
     build:
       context: ./base
     image: ningensei848/scrap:base
+    environment:
+      - TZ
+      - USER
+      - PASSWD
+    # for debug
+    privileged: true
+    user: "${UID}:${GID}"
+    # command: ["bash", "-c", "/etc/init.d/xrdp start"]
+    command: ["bash", "-c", "bash /opt/endpoint.sh && /etc/init.d/xrdp start && tail -F /var/log/xrdp-sesman.log"]
+    
+
+    volumes:
+      - /sys/fs/cgroup:/sys/fs/cgroup:ro
+    ports:
+      - "3390:3389" 
+    tty: true
+
+
   yahoo:
+    container_name: yahoo
     build: 
       context: ./yahoo
     image: ningensei848/scrap:yahoo
@@ -22,6 +41,7 @@ services:
       - ./data/yahoo:/server/$DATA_VOLUME_YAHOO
       - ./log/yahoo:/var/log
   clickworker:
+    container_name: cwork
     build: 
       context: ./clickworker
     image: ningensei848/scrap:cwork
@@ -38,6 +58,7 @@ services:
       - ./data/clickworker:/server/$DATA_VOLUME_CWORK
       - ./log/clickworker:/var/log
   mturk:
+    container_name: mturk
     build: 
       context: ./mturk
     image: ningensei848/scrap:mturk
