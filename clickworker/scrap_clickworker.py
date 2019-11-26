@@ -1,3 +1,5 @@
+# -*- coding: utf-8 -*-
+
 import os
 import json
 import subprocess
@@ -21,7 +23,8 @@ from selenium.webdriver.support import expected_conditions as EC
 def initializeDriver():
 
     tz_jst = timezone(timedelta(hours=9))
-    print('START: {}'.format(datetime.now(tz_jst).strftime('%Y%m%d_%H%M%S')))
+
+    print('START: {}'.format(datetime.now(tz_jst).isoformat(timespec='seconds')))
     # set virtual display via Xvfb
     print('Setting virtual window ...')
     display = Display(visible=0, size=(1024, 768))
@@ -34,6 +37,7 @@ def initializeDriver():
     options.add_argument('--no-sandbox')
     options.add_argument('--disable-gpu')
     options.add_argument('--disable-dev-shm-usage')
+    options.add_argument('--user-data-dir={}'.format(os.environ.get('GOOGLE_PROFILE_PATH', '/server/chrome')))
     print('Options done!')
 
     # set webdriver
@@ -45,16 +49,10 @@ def initializeDriver():
     return driver
 
 
-def loginService(pageurl, driver):
+def solveReCaptcha(driver):
 
-    # config from ENVIRONMENT
-    username = os.environ.get('USERNAME_CWORK', 'default')
-    password = os.environ.get('PASS_CWORK', 'default')
     service_key = os.environ.get('SERVICE_KEY_2CAPCHA', 'default')
     google_site_key = os.environ.get('GOOGLE_SITE_KEY_CWORK', 'default')
-
-    # まずはログイン画面を読み込む
-    driver.get(pageurl)
 
     # iframe 中のdisplay:none を無効化してtextareaを引きずり出している
     driver.execute_script('var element=document.getElementById("g-recaptcha-response"); element.style.display="";')
@@ -80,23 +78,48 @@ def loginService(pageurl, driver):
             print('\n fetch OK.\n')
             break
     # print('Google response token: ', resp.text[3:])
+    captcha_code = resp.text[3:]
+
+    return captcha_code
+
+
+def loginService(pageurl, driver):
+
+    # config from ENVIRONMENT
+    username = os.environ.get('USERNAME_CWORK', 'default')
+    password = os.environ.get('PASS_CWORK', 'default')
+
+    # まずはログイン画面を読み込む
+    driver.get(pageurl)
+    sleep(10 * random())
+    
+    captcha_code = solveReCaptcha(driver)
+
+    soup = BeautifulSoup(driver.page_source, 'lxml')
 
     # input にusername, passwordを入力する
-    driver.find_element_by_id('username').send_keys(username)
-    sleep(10 * random())
-    driver.find_element_by_id('password').send_keys(password)
-    sleep(10 * random())
+    if soup.find(name='input', id='username'):
+        driver.find_element_by_id('username').send_keys(username)
+        sleep(10 * random())
+    
+    if soup.find(name='input', id='password'):
+        driver.find_element_by_id('password').send_keys(password)
+        sleep(10 * random())
+    
+    if soup.find(name='textarea', id='g-recaptcha-response'):
+        # textareaにトークンを入力する →　送信する
+        driver.find_element_by_id('g-recaptcha-response').send_keys(resp.text[3:])
+        sleep(10 * random())
 
-    # textareaにトークンを入力する →　送信する
-    driver.find_element_by_id('g-recaptcha-response').send_keys(resp.text[3:])
-    sleep(10 * random())
-
-    # login ボタンを押して送信する
-    loginButton = driver.find_element_by_xpath("//input[@name='commit'][@type='submit']")
-    driver.execute_script("arguments[0].click();", loginButton)
-    sleep(10 * random())
+    if soup.find(name='input', attrs={'name': 'commit', 'type': 'submit'}):
+        # login ボタンを押して送信する
+        loginButton = driver.find_element_by_xpath("//input[@name='commit'][@type='submit']")
+        driver.execute_script("arguments[0].click();", loginButton)
+        sleep(10 * random())
 
     print(driver.current_url)
+
+    return driver
 
 
 def outputJSON(json_list):

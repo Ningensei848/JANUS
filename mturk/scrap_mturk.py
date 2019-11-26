@@ -1,3 +1,5 @@
+# -*- coding: utf-8 -*-
+
 import os
 import re
 import sys
@@ -51,7 +53,7 @@ def getCaptchaCode(html):
     soup = BeautifulSoup(html, 'lxml')
     captcha_body = soup.find(name='div', id='image-captcha-section')
 
-    outputHTML(html, tag="confirmImg")
+    # outputHTML(html, tag="confirmImg")
 
     instruction = captcha_body.find(name='h4').text.strip()
     imgURL = captcha_body.find(name='img', id='auth-captcha-image')['src']
@@ -109,6 +111,7 @@ def initializeDriver():
     options.add_argument('--no-sandbox')
     options.add_argument('--disable-gpu')
     options.add_argument('--disable-dev-shm-usage')
+    options.add_argument('--user-data-dir={}'.format(os.environ.get('GOOGLE_PROFILE_PATH', '/server/chrome')))
     print('Options done!')
 
     # set webdriver
@@ -203,7 +206,7 @@ def login(pageurl, driver):
     html = driver.page_source
     soup = BeautifulSoup(html, 'lxml')
 
-    outputHTML(html, tag='beforeInputs')
+    # outputHTML(html, tag='beforeInputs')
 
     # email, passwordの入力欄があれば、クリアしてから入力する
     if soup.find(name='input', id='ap_email'):
@@ -234,12 +237,12 @@ def login(pageurl, driver):
         driver.execute_script("arguments[0].click();", continueButton)
         sleep(30 * random())
     
-    outputHTML(html, tag='afterSend')
+    # outputHTML(html, tag='afterSend')
 
     # ----------- 状況によって、CaptchaかOTPか変化する（どちらが先にくるかわからない）
     # for debug
     print('button has push.\n')
-    outputHTML(driver.page_source, tag="afterPush")
+    # outputHTML(driver.page_source, tag="afterPush")
 
     html = driver.page_source
     soup = BeautifulSoup(html, 'lxml')
@@ -273,7 +276,7 @@ def countPages(driver):
     driver.get(rootURL)
     sleep(20 * random())
     html = driver.page_source
-    outputHTML(html, tag='inCountingPages')
+    # outputHTML(html, tag='inCountingPages')
     print(driver.current_url)
     sleep(10 * random())
 
@@ -348,7 +351,7 @@ tz_jst = timezone(timedelta(hours=9))
 try:
     driver = initializeDriver()
     login(pageurl, driver)
-    outputHTML(driver.page_source, tag="afterLogin")
+    # outputHTML(driver.page_source, tag="afterLogin")
     page_list = countPages(driver)
     json_dict = getHITContent(page_list)
     outputJSON(json_dict)
@@ -360,6 +363,6 @@ try:
 except Exception as e:
     print(datetime.now(tz_jst).isoformat(timespec='seconds'), file=sys.stderr)
     print('USER EXCEPTION ! : ' + e, file=sys.stderr)
-    outputHTML(driver.page_source, tag="anyExceptions")
+    # outputHTML(driver.page_source, tag="anyExceptions")
     driver.quit()
     escapeBash()

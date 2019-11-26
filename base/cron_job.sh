@@ -3,7 +3,7 @@
 cd /server
 
 filename=$(date +%Y%m%d)
-stdout="/var/log/stdout.log"
-stderr="/var/log/${filename}_err.log"
+stdout="/server/log/stdout.log"
+stderr="/server/log/${filename}_err.log"
 
-python /server/scrap.py >> $stdout 2>> $stderr
+python3.8 /server/scrap.py >> $stdout 2>> $stderr

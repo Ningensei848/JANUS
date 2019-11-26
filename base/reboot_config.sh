@@ -7,11 +7,12 @@ sleep 10
 cronjob='*/15 * * * * root /bin/bash /server/cron_job.sh'
 
 # ~/.bashrc に変数が含まれていなかったらenvから追記する
-cronfile=/etc/cron.d/cron_cwork
+cronfile=/etc/cron.d/crontask
 
 if cat $cronfile | grep 'DATA_VOLUME' >/dev/null; then
-    echo "ENV have been inclued."
+    echo "ENV have been included."
 else
+    echo "ENV have not been included."
     echo 'SHELL=/bin/bash' > $cronfile
     for e in `env`
     do
@@ -23,5 +24,5 @@ else
     echo "COMPLETE: ADD ENV to .bashrc ."
 fi
 
-crontab /etc/cron.d/cron_cwork
+crontab /etc/cron.d/crontask
 crontab -l

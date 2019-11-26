@@ -3,7 +3,10 @@
 .env
 
 # directory
+baidu/
 log/
 data/
 .vscode/
+chrome
+
 

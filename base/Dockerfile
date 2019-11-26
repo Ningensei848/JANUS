@@ -55,37 +55,3 @@ RUN wget --no-check-certificate https://chromedriver.storage.googleapis.com/78.0
 # python ライブラリのインストール
 RUN pip install -r requirements.txt \
     && rm requirements.txt
-
-
-# Ubuntu にGUIをインストール -----------------------------------------------------------------
-RUN apt -y update && apt install -y --no-install-recommends \
-    lxde xrdp ibus ibus-mozc language-pack-ja-base language-pack-ja \
-    fonts-ipafont-gothic fonts-ipafont-mincho xorgxrdp \
-    && apt clean \
-    && rm -rf /var/cache/apt/archives/* \
-    && rm -rf /var/lib/apt/lists/*
-
-RUN echo "startlxde" > /etc/skel/.xsession
-
-RUN locale-gen ja_JP.UTF-8 \
-    && echo 'LC_ALL=ja_JP.UTF-8' > /etc/default/locale \
-    && echo 'LANG=ja_JP.UTF-8' >> /etc/default/locale
-
-ENV LANG=ja_JP.UTF-8 \
-    LANGUAGE=ja_JP:ja \
-    LC_ALL=ja_JP.UTF-8
-
-# デフォルトのユーザ名とパスワード
-ENV DEFAULT_USER=developer \
-    DEFAULT_PASSWD=xrdppasswd
-
-# sudoを使用できるようにする
-RUN echo "ALL ALL=(ALL) NOPASSWD: ALL" >> /etc/sudoers.d/ALL
-
-# 一般ユーザがユーザ/グループを追加できるようにする
-RUN chmod u+s /usr/sbin/useradd \
-    && chmod u+s /usr/sbin/groupadd
-
-# XRDPのendpointスクリプトを配置する
-COPY ./endpoint.sh /opt/
-RUN chmod +x /opt/endpoint.sh

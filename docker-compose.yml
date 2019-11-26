@@ -6,24 +6,50 @@ services:
     build:
       context: ./base
     image: ningensei848/scrap:base
-    environment:
-      - TZ
-      - USER
-      - PASSWD
-    # for debug
-    privileged: true
-    user: "${UID}:${GID}"
-    # command: ["bash", "-c", "/etc/init.d/xrdp start"]
-    command: ["bash", "-c", "bash /opt/endpoint.sh && /etc/init.d/xrdp start && tail -F /var/log/xrdp-sesman.log"]
-    
 
-    volumes:
-      - /sys/fs/cgroup:/sys/fs/cgroup:ro
-    ports:
-      - "3390:3389" 
+# baidu:
+#   container_name: baidu
+#   build: 
+#     context: ./baidu
+#   image: ningensei848/scrap:baidu
+#   # 検証用
+#   # command: python3.8 /server/scrap.py >> /var/log/stdout.log 2>> /var/log/stderr.log
+#   # command: ["bash", "-c", "bash /server/start_server.sh && bash"]
+#   command: bash
+#   # command: ["bash", "-c", "docker-entrypoint.sh"]
+#   user: "${UID}:${GID}"
+#   # restart: always
+#   environment:
+#     - DATA_VOLUME_BAIDU
+#     - GOOGLE_PROFILE_PATH
+#     - USER
+#     - PASSWD
+#   tty: true
+#   volumes:
+#     - ./data/baidu:/server/$DATA_VOLUME_BAIDU
+#     - ./log/baidu:/server/log
+#     - ./chrome:/server/chrome
+
+  clickworker:
+    container_name: cwork
+    build: 
+      context: ./clickworker
+    image: ningensei848/scrap:cwork
+    command: ["bash", "-c", "bash /server/start_server.sh && bash"]
     tty: true
-
-
+    # restart: always
+    environment:
+      - USERNAME_CWORK
+      - PASS_CWORK
+      - SERVICE_KEY_2CAPCHA
+      - GOOGLE_SITE_KEY_CWORK
+      - GOOGLE_PROFILE_PATH
+      - DATA_VOLUME_CWORK
+    volumes:
+      - ./data/clickworker:/server/$DATA_VOLUME_CWORK
+      - ./log/clickworker:/server/log
+      - ./chrome:/server/chrome
+  
   yahoo:
     container_name: yahoo
     build: 
@@ -37,35 +63,20 @@ services:
     restart: always
     environment:
       - DATA_VOLUME_YAHOO
+      - GOOGLE_PROFILE_PATH
     volumes:
       - ./data/yahoo:/server/$DATA_VOLUME_YAHOO
-      - ./log/yahoo:/var/log
-  clickworker:
-    container_name: cwork
-    build: 
-      context: ./clickworker
-    image: ningensei848/scrap:cwork
-    command: ["bash", "-c", "bash /server/start_server.sh && bash"]
-    tty: true
-    restart: always
-    environment:
-      - USERNAME_CWORK
-      - PASS_CWORK
-      - SERVICE_KEY_2CAPCHA
-      - GOOGLE_SITE_KEY_CWORK
-      - DATA_VOLUME_CWORK
-    volumes:
-      - ./data/clickworker:/server/$DATA_VOLUME_CWORK
-      - ./log/clickworker:/var/log
+      - ./log/yahoo:/server/log
+      - ./chrome:/server/chrome
+  
   mturk:
     container_name: mturk
     build: 
       context: ./mturk
     image: ningensei848/scrap:mturk
     # 検証用
-    command: python /server/scrap.py >> /var/log/stdout.log 2>> /var/log/stderr.log
+    command: python3.8 /server/scrap.py >> /var/log/stdout.log 2>> /var/log/stderr.log
     # command: ["bash", "-c", "bash /server/start_server.sh && bash"]
-    # tty: true
     # restart: always
     ports:
       - "8765:8765"
@@ -74,9 +85,9 @@ services:
       - PASS_MTURK
       - SERVICE_KEY_2CAPCHA
       - DATA_VOLUME_MTURK
+      - GOOGLE_PROFILE_PATH
+    tty: true
     volumes:
       - ./data/mturk:/server/$DATA_VOLUME_MTURK
-      - ./log/mturk:/var/log
-  # zbj:
-  #   build: ./yahoo
-  #   image: scrap:base
+      - ./log/mturk:/server/log
+      - ./chrome:/server/chrome
