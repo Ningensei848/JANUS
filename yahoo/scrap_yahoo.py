@@ -98,7 +98,7 @@ def getJobsContent(rootURL):
 
     easytaskURL_list = getEasyTaskList(rootURL)
 
-    json_list = []
+    easytask_list = []
 
     for url in easytaskURL_list:
         r = requests.get(url)
@@ -107,13 +107,13 @@ def getJobsContent(rootURL):
 
         temp_dict = extractTaskInfo(soup)
         temp_dict['id'] = task_id
-        json_list.append(json.dumps(temp_dict, indent=4, ensure_ascii=False))
+        easytask_list.append(temp_dict)
         
         # 一応、攻撃認定を避けるため間隔を空ける
         sleep(10 * random())
         continue
 
-    outputJSON(json_list)
+    outputJSON(easytask_list)
 
 # ここから本番 -------------------------------------------
 
@@ -123,9 +123,9 @@ tz_jst = timezone(timedelta(hours=9))
 try:
     rootURL = 'https://crowdsourcing.yahoo.co.jp/request/list/open/D/'
     getJobsContent(rootURL)
+
     timestamp = datetime.now(tz_jst).isoformat(timespec='seconds')
-    message = 'DATA_VOLUME_YAHOO: {}'.format(os.environ.get('DATA_VOLUME_YAHOO', 'ENV is not configured!'))
-    print(timestamp + '...' + message)
+    print('{} ... STATUS: complete.'.format(timestamp))
 
 except Exception as e:
     print(datetime.now(tz_jst).isoformat(timespec='seconds'))

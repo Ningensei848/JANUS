@@ -37,7 +37,8 @@ def initializeDriver():
     options.add_argument('--no-sandbox')
     options.add_argument('--disable-gpu')
     options.add_argument('--disable-dev-shm-usage')
-    options.add_argument('--user-data-dir={}'.format(os.environ.get('GOOGLE_PROFILE_PATH', '/server/chrome')))
+    # options.add_argument('--user-data-dir=/server/profile')
+    # options.add_argument("--profile-directory='{}'".format('Profile 2'))
     print('Options done!')
 
     # set webdriver
@@ -92,8 +93,6 @@ def loginService(pageurl, driver):
     # まずはログイン画面を読み込む
     driver.get(pageurl)
     sleep(10 * random())
-    
-    captcha_code = solveReCaptcha(driver)
 
     soup = BeautifulSoup(driver.page_source, 'lxml')
 
@@ -108,7 +107,8 @@ def loginService(pageurl, driver):
     
     if soup.find(name='textarea', id='g-recaptcha-response'):
         # textareaにトークンを入力する →　送信する
-        driver.find_element_by_id('g-recaptcha-response').send_keys(resp.text[3:])
+        captcha_code = solveReCaptcha(driver)
+        driver.find_element_by_id('g-recaptcha-response').send_keys(captcha_code)
         sleep(10 * random())
 
     if soup.find(name='input', attrs={'name': 'commit', 'type': 'submit'}):
@@ -184,7 +184,7 @@ def extractJobInfo(job):
     return_dict['short-instruction'] = job.find(name='p', class_='short-instruction').text.strip()
     return_dict['price'] = meta_info.find(name='div', class_='price').text.strip()
 
-    return json.dumps(return_dict)
+    return return_dict  # json.dumps(return_dict)
 
 
 def parseHTML(html):
@@ -194,9 +194,9 @@ def parseHTML(html):
     """
 
     soup = BeautifulSoup(html, 'lxml')
-    jobs_json_list = [extractJobInfo(job) for job in soup.find_all(name='div', class_='job') if 'id' in job.attrs]
+    jobs_list = [extractJobInfo(job) for job in soup.find_all(name='div', class_='job') if 'id' in job.attrs]
 
-    return jobs_json_list
+    return jobs_list
 
 
 def getJobsContent(driver):
@@ -228,6 +228,8 @@ def escapeBash(self):
 
 # ここから本番 -------------------------------------------
 
+tz_jst = timezone(timedelta(hours=9))
+
 print('USERNAME_CWORK: {}'.format(os.environ.get('USERNAME_CWORK', 'ENV is not configured!')))
 # ログイン先URL(reCAPTCHAが設置してるURL)
 pageurl = 'https://workplace.clickworker.com/en/'
@@ -237,8 +239,11 @@ try:
     loginService(pageurl, driver)
     getJobsContent(driver)
 
+    timestamp = datetime.now(tz_jst).isoformat(timespec='seconds')
+    print('{} ... STATUS: complete.'.format(timestamp))
 
 except Exception as e:
+    print(datetime.now(tz_jst).isoformat(timespec='seconds'), file=sys.stderr)
     print('USER EXCEPTION ! : ' + e)
     driver.quit()
     escapeBash()

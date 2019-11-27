@@ -111,7 +111,12 @@ def initializeDriver():
     options.add_argument('--no-sandbox')
     options.add_argument('--disable-gpu')
     options.add_argument('--disable-dev-shm-usage')
+    options.add_argument('--disable-extensions')
+    options.add_argument('disable-infobars')
+    # options.add_argument('--disable-dev-shm-usage')
     options.add_argument('--user-data-dir={}'.format(os.environ.get('GOOGLE_PROFILE_PATH', '/server/chrome')))
+    options.add_argument("--profile-directory={}".format('Profile 1'))
+
     print('Options done!')
 
     # set webdriver
@@ -357,8 +362,7 @@ try:
     outputJSON(json_dict)
 
     timestamp = datetime.now(tz_jst).isoformat(timespec='seconds')
-    message = 'DATA_VOLUME_MTURK: {}'.format(os.environ.get('DATA_VOLUME_MTURK', 'ENV is not configured!'))
-    print(timestamp + '...' + message)
+    print('{} ... STATUS: complete.'.format(timestamp))
 
 except Exception as e:
     print(datetime.now(tz_jst).isoformat(timespec='seconds'), file=sys.stderr)

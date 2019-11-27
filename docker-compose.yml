@@ -36,26 +36,25 @@ services:
       context: ./clickworker
     image: ningensei848/scrap:cwork
     command: ["bash", "-c", "bash /server/start_server.sh && bash"]
+    # command: python /server/scrap.py >> /var/log/stdout.log 2>> /var/log/stderr.log
     tty: true
-    # restart: always
+    restart: always
     environment:
       - USERNAME_CWORK
       - PASS_CWORK
       - SERVICE_KEY_2CAPCHA
       - GOOGLE_SITE_KEY_CWORK
-      - GOOGLE_PROFILE_PATH
       - DATA_VOLUME_CWORK
     volumes:
       - ./data/clickworker:/server/$DATA_VOLUME_CWORK
       - ./log/clickworker:/server/log
-      - ./chrome:/server/chrome
   
   yahoo:
     container_name: yahoo
     build: 
       context: ./yahoo
     image: ningensei848/scrap:yahoo
-    # command: ["python", "/server/scrap.py"]
+    # command: python /server/scrap.py >> /var/log/stdout.log 2>> /var/log/stderr.log
     command: ["bash", "-c", "bash /server/start_server.sh && bash"]
     # コマンドを実行したあともコンテナが起動し続ける
     tty: true
@@ -67,7 +66,6 @@ services:
     volumes:
       - ./data/yahoo:/server/$DATA_VOLUME_YAHOO
       - ./log/yahoo:/server/log
-      - ./chrome:/server/chrome
   
   mturk:
     container_name: mturk
@@ -75,9 +73,9 @@ services:
       context: ./mturk
     image: ningensei848/scrap:mturk
     # 検証用
-    command: python3.8 /server/scrap.py >> /var/log/stdout.log 2>> /var/log/stderr.log
-    # command: ["bash", "-c", "bash /server/start_server.sh && bash"]
-    # restart: always
+    # command: python /server/scrap.py >> /var/log/stdout.log 2>> /var/log/stderr.log
+    command: ["bash", "-c", "bash /server/start_server.sh && bash"]
+    restart: always
     ports:
       - "8765:8765"
     environment:
@@ -90,4 +88,4 @@ services:
     volumes:
       - ./data/mturk:/server/$DATA_VOLUME_MTURK
       - ./log/mturk:/server/log
-      - ./chrome:/server/chrome
+      - ./chrome:$GOOGLE_PROFILE_PATH
