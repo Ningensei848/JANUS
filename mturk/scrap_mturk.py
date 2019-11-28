@@ -370,3 +370,5 @@ except Exception as e:
     # outputHTML(driver.page_source, tag="anyExceptions")
     driver.quit()
     escapeBash()
+
+driver.quit()

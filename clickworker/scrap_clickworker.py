@@ -37,7 +37,7 @@ def initializeDriver():
     options.add_argument('--no-sandbox')
     options.add_argument('--disable-gpu')
     options.add_argument('--disable-dev-shm-usage')
-    # options.add_argument('--user-data-dir=/server/profile')
+    options.add_argument('--user-data-dir=/server/profile')
     # options.add_argument("--profile-directory='{}'".format('Profile 2'))
     print('Options done!')
 
@@ -247,3 +247,5 @@ except Exception as e:
     print('USER EXCEPTION ! : ' + e)
     driver.quit()
     escapeBash()
+
+driver.quit()

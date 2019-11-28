@@ -12,6 +12,8 @@ tqdm = "*"
 PyVirtualDisplay = "*"
 beautifulsoup4 = "*"
 lxml = "*"
+schedule = "*"
+flask = "*"
 
 [requires]
 python_version = "3.7"

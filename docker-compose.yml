@@ -7,28 +7,21 @@ services:
       context: ./base
     image: ningensei848/scrap:base
 
-# baidu:
-#   container_name: baidu
-#   build: 
-#     context: ./baidu
-#   image: ningensei848/scrap:baidu
-#   # 検証用
-#   # command: python3.8 /server/scrap.py >> /var/log/stdout.log 2>> /var/log/stderr.log
-#   # command: ["bash", "-c", "bash /server/start_server.sh && bash"]
-#   command: bash
-#   # command: ["bash", "-c", "docker-entrypoint.sh"]
-#   user: "${UID}:${GID}"
-#   # restart: always
-#   environment:
-#     - DATA_VOLUME_BAIDU
-#     - GOOGLE_PROFILE_PATH
-#     - USER
-#     - PASSWD
-#   tty: true
-#   volumes:
-#     - ./data/baidu:/server/$DATA_VOLUME_BAIDU
-#     - ./log/baidu:/server/log
-#     - ./chrome:/server/chrome
+  baidu:
+    container_name: baidu
+    build: 
+      context: ./baidu
+    image: ningensei848/scrap:baidu
+    # 検証用
+    # command: python3.8 /server/scrap.py >> /var/log/stdout.log 2>> /var/log/stderr.log
+    command: ["bash", "-c", "bash /server/start_server.sh && bash"]
+    tty: true 
+    restart: always
+    environment:
+      - DATA_VOLUME_BAIDU
+    volumes:
+      - ./data/baidu:/server/$DATA_VOLUME_BAIDU
+      - ./log/baidu:/server/log
 
   clickworker:
     container_name: cwork
