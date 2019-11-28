@@ -29,6 +29,8 @@ def getEasyTaskList(rootURL):
         result_set = BeautifulSoup(requests.get(url).text, 'lxml').find_all('a', class_='d_detailLink')
 
         easytaskURL_list += [a.attrs['href'] for a in result_set]
+
+        sleep(10 * random())
         
         if len(result_set) == 0:
             break
@@ -91,7 +93,7 @@ def outputJSON(json_list):
         'content': json_list
     }
 
-    with open(filepath, mode='w') as f:
+    with open(filepath, mode='w', encoding='utf-8') as f:
         f.write(json.dumps(temp_dict, indent=4, ensure_ascii=False))
  
 def getJobsContent(rootURL):
@@ -128,6 +130,6 @@ try:
     print('{} ... STATUS: complete.'.format(timestamp))
 
 except Exception as e:
-    print(datetime.now(tz_jst).isoformat(timespec='seconds'))
-    print('USER EXCEPTION ! : ' + e)
+    print(datetime.now(tz_jst).isoformat(timespec='seconds'), file=sys.stderr)
+    print('USER EXCEPTION ! : ' + str(e))
     escapeBash()

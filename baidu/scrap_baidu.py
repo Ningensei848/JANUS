@@ -83,7 +83,7 @@ def initializeDriver():
     tz_jst = timezone(timedelta(hours=9))
 
     print('START: {}'.format(datetime.now(tz_jst).isoformat(timespec='seconds')))
-    set virtual display via Xvfb
+    # set virtual display via Xvfb
     print('Setting virtual window ...')
     display = Display(visible=0, size=(1920, 1080))
     display.start()

@@ -241,11 +241,10 @@ try:
 
     timestamp = datetime.now(tz_jst).isoformat(timespec='seconds')
     print('{} ... STATUS: complete.'.format(timestamp))
+    driver.quit()
 
 except Exception as e:
     print(datetime.now(tz_jst).isoformat(timespec='seconds'), file=sys.stderr)
     print('USER EXCEPTION ! : ' + e)
     driver.quit()
     escapeBash()
-
-driver.quit()
