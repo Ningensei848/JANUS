@@ -60,25 +60,25 @@ services:
       - ./data/yahoo:/server/$DATA_VOLUME_YAHOO
       - ./log/yahoo:/server/log
   
-  mturk:
-    container_name: mturk
-    build: 
-      context: ./mturk
-    image: ningensei848/scrap:mturk
-    # 検証用
-    # command: python /server/scrap.py >> /var/log/stdout.log 2>> /var/log/stderr.log
-    command: ["bash", "-c", "bash /server/start_server.sh && bash"]
-    restart: always
-    ports:
-      - "8765:8765"
-    environment:
-      - USERNAME_MTURK
-      - PASS_MTURK
-      - SERVICE_KEY_2CAPCHA
-      - DATA_VOLUME_MTURK
-      - GOOGLE_PROFILE_PATH
-    tty: true
-    volumes:
-      - ./data/mturk:/server/$DATA_VOLUME_MTURK
-      - ./log/mturk:/server/log
-      - ./chrome:$GOOGLE_PROFILE_PATH
+  # mturk:
+  #   container_name: mturk
+  #   build: 
+  #     context: ./mturk
+  #   image: ningensei848/scrap:mturk
+  #   # 検証用
+  #   # command: python /server/scrap.py >> /var/log/stdout.log 2>> /var/log/stderr.log
+  #   command: ["bash", "-c", "bash /server/start_server.sh && bash"]
+  #   restart: always
+  #   ports:
+  #     - "8765:8765"
+  #   environment:
+  #     - USERNAME_MTURK
+  #     - PASS_MTURK
+  #     - SERVICE_KEY_2CAPCHA
+  #     - DATA_VOLUME_MTURK
+  #     - GOOGLE_PROFILE_PATH
+  #   tty: true
+  #   volumes:
+  #     - ./data/mturk:/server/$DATA_VOLUME_MTURK
+  #     - ./log/mturk:/server/log
+  #     - ./chrome:$GOOGLE_PROFILE_PATH

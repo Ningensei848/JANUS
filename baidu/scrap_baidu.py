@@ -238,7 +238,7 @@ try:
     driver.quit()
 
     timestamp = datetime.now(tz_jst).isoformat(timespec='seconds')
-    message = 'DATA_VOLUME_BAIDU: {}'.format(os.environ.get('DATA_VOLUME_BAIDU', 'ENV is not configured!'))
+    message = 'DATA_VOLUME_BAIDU: {}\n'.format(os.environ.get('DATA_VOLUME_BAIDU', 'ENV is not configured!'))
     print(timestamp + '...' + message)
 
 except Exception as e:

@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 
 import os
+import sys
 import json
 import subprocess
 from time import sleep
@@ -37,7 +38,7 @@ def initializeDriver():
     options.add_argument('--no-sandbox')
     options.add_argument('--disable-gpu')
     options.add_argument('--disable-dev-shm-usage')
-    options.add_argument('--user-data-dir=/server/profile')
+    # options.add_argument('--user-data-dir=/server/profile')
     # options.add_argument("--profile-directory='{}'".format('Profile 2'))
     print('Options done!')
 
@@ -76,7 +77,7 @@ def solveReCaptcha(driver):
         sleep(5) # wait 5 sec.
         resp = requests.get(fetch_url)
         if resp.text[0:2] == 'OK':
-            print('\n fetch OK.\n')
+            print('  fetch OK.')
             break
     # print('Google response token: ', resp.text[3:])
     captcha_code = resp.text[3:]
@@ -240,11 +241,11 @@ try:
     getJobsContent(driver)
 
     timestamp = datetime.now(tz_jst).isoformat(timespec='seconds')
-    print('{} ... STATUS: complete.'.format(timestamp))
+    print('{} ... STATUS: complete.\n'.format(timestamp))
     driver.quit()
 
 except Exception as e:
     print(datetime.now(tz_jst).isoformat(timespec='seconds'), file=sys.stderr)
     print('USER EXCEPTION ! : ' + e)
     driver.quit()
-    escapeBash()
+
