@@ -1,6 +1,9 @@
 
 # files
 .env
+mturk/Pipfile*
+mturk/cron.ps1
+mturk/requirements.txt
 
 # directory
 
@@ -8,5 +11,4 @@ log/
 data/
 .vscode/
 chrome
-
-
+mturk/hits/

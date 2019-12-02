@@ -87,12 +87,7 @@ def getCaptchaCode(html):
     captcha_code = resp.text[3:]
 
     return captcha_code
-  
-def escapeBash(self):
-    command = ["exit", "1"]
-    completed_process = subprocess.run(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-    print(completed_process.stdout.decode("utf8"))
-    print(completed_process.stderr.decode("utf8"))
+
 
 def initializeDriver():
 
@@ -100,10 +95,10 @@ def initializeDriver():
 
     print('START: {}'.format(datetime.now(tz_jst).isoformat(timespec='seconds')))
     # set virtual display via Xvfb
-    print('Setting virtual window ...')
-    display = Display(visible=0, size=(1024, 768))
-    display.start()
-    print('window start!')
+    # print('Setting virtual window ...')
+    # display = Display(visible=0, size=(1024, 768))
+    # display.start()
+    # print('window start!')
 
     # set options
     print('reading options ...')
@@ -114,7 +109,8 @@ def initializeDriver():
     options.add_argument('--disable-extensions')
     options.add_argument('disable-infobars')
     # options.add_argument('--disable-dev-shm-usage')
-    options.add_argument('--user-data-dir={}'.format(os.environ.get('GOOGLE_PROFILE_PATH', '/server/chrome')))
+    # options.add_argument('--user-data-dir={}'.format(os.environ.get('GOOGLE_PROFILE_PATH', '/server/profile')))
+    options.add_argument('--user-data-dir={}'.format(os.environ.get('GOOGLE_PROFILE_PATH', r'C:\Users\kiai\AppData\Local\Google\Chrome\User Data')))
     options.add_argument("--profile-directory={}".format('Profile 1'))
 
     print('Options done!')
@@ -197,7 +193,7 @@ def outputHTML(html, tag=""):
     else:
         filepath = target_dir / '{}.html'.format(datetime.now(tz_jst).strftime('%Y%m%d_%H%M%S'))
 
-    with open(filepath, mode='w') as f:
+    with open(filepath, mode='w', encoding='utf-8') as f:
         f.write(html)
 
 def login(pageurl, driver):
@@ -304,7 +300,7 @@ def outputJSON(json_dict):
     current_dir = Path.cwd()
     volume = os.environ.get('DATA_VOLUME_MTURK', 'hits')
     target_dir = current_dir / volume / datetime.now(tz_jst).strftime('%Y%m%d')
-    target_dir.mkdir(exist_ok=True)
+    target_dir.mkdir(parents=True, exist_ok=True)
     filepath = target_dir / '{}.json'.format(datetime.now(tz_jst).strftime('%Y%m%d_%H%M%S'))
 
     if len(json_dict['bodyData']) == 0:
@@ -319,7 +315,7 @@ def outputJSON(json_dict):
         'content': json_dict
     }    
 
-    with open(filepath, mode='w') as f:
+    with open(filepath, mode='w', encoding='utf-8') as f:
         f.write(json.dumps(temp_dict, indent=4, ensure_ascii=False))
 
 def getHITContent(page_list):
@@ -363,12 +359,15 @@ try:
 
     timestamp = datetime.now(tz_jst).isoformat(timespec='seconds')
     print('{} ... STATUS: complete.'.format(timestamp))
-    driver.quit()
 
 except Exception as e:
     print(datetime.now(tz_jst).isoformat(timespec='seconds'), file=sys.stderr)
     print('USER EXCEPTION ! : ' + str(e), file=sys.stderr)
     # outputHTML(driver.page_source, tag="anyExceptions")
-    driver.quit()
-    escapeBash()
 
+
+try:
+    driver.quit()
+    print('Driver has stopped.\n')
+except NameError as ne:
+    print(str(ne), file=sys.stderr)
