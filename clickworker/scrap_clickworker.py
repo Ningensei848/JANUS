@@ -234,18 +234,30 @@ tz_jst = timezone(timedelta(hours=9))
 print('USERNAME_CWORK: {}'.format(os.environ.get('USERNAME_CWORK', 'ENV is not configured!')))
 # ログイン先URL(reCAPTCHAが設置してるURL)
 pageurl = 'https://workplace.clickworker.com/en/'
+driver = initializeDriver()
+
+# 最大で5回ログインを試行する
+for _ in range(5):
+    try:
+        loginService(pageurl, driver)
+        print('login success.', file=sys.stderr)
+        break
+    except requests.exceptions.ConnectionError as cne:
+        print('USER EXCEPTION ! : ' + str(cne))
+        continue
 
 try:
-    driver = initializeDriver()
-    loginService(pageurl, driver)
     getJobsContent(driver)
 
     timestamp = datetime.now(tz_jst).isoformat(timespec='seconds')
     print('{} ... STATUS: complete.\n'.format(timestamp))
-    driver.quit()
 
 except Exception as e:
     print(datetime.now(tz_jst).isoformat(timespec='seconds'), file=sys.stderr)
-    print('USER EXCEPTION ! : ' + e)
-    driver.quit()
+    print('USER EXCEPTION ! : ' + str(e))
 
+try:
+    driver.quit()
+    print('Driver has stopped.\n')
+except NameError as ne:
+    print(str(ne), file=sys.stderr)
