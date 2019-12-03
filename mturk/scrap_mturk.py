@@ -346,6 +346,9 @@ def preprocess(json_dict):
     content = json_dict['content']
     tableConfig = content.pop('tableConfig')
 
+    # convert `hit_set_id` to `id`
+    for hit_set in content['bodyData']:
+        hit_set['id'] = hit_set.pop('hit_set_id')
 
     json_dict['content'] = content['bodyData']  # list of dict
     json_dict['tableConfig'] = tableConfig
