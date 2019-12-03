@@ -341,6 +341,17 @@ def getHITContent(page_list):
 
     return json_dict  # dict
 
+def preprocess(json_dict):
+
+    content = json_dict['content']
+    tableConfig = content.pop('tableConfig')
+
+
+    json_dict['content'] = content['bodyData']  # list of dict
+    json_dict['tableConfig'] = tableConfig
+
+    return json_dict
+
 # ここから本番 -------------------------------------------
 
 # ログイン先URL(reCAPTCHAが設置してるURL)
@@ -355,6 +366,7 @@ try:
     # outputHTML(driver.page_source, tag="afterLogin")
     page_list = countPages(driver)
     json_dict = getHITContent(page_list)
+    json_dict = preprocess(json_dict)
     outputJSON(json_dict)
 
     timestamp = datetime.now(tz_jst).isoformat(timespec='seconds')
