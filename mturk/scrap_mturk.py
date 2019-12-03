@@ -293,30 +293,6 @@ def countPages(driver):
 
     return page_list
 
-def outputJSON(json_dict):
-
-    tz_jst = timezone(timedelta(hours=9))
-
-    current_dir = Path.cwd()
-    volume = os.environ.get('DATA_VOLUME_MTURK', 'hits')
-    target_dir = current_dir / volume / datetime.now(tz_jst).strftime('%Y%m%d')
-    target_dir.mkdir(parents=True, exist_ok=True)
-    filepath = target_dir / '{}.json'.format(datetime.now(tz_jst).strftime('%Y%m%d_%H%M%S'))
-
-    if len(json_dict['bodyData']) == 0:
-        status = 'failure'
-    else:
-        status = 'OK' 
-
-    temp_dict = {
-        'service': 'AmazonMechanicalTurk',
-        'timestamp': datetime.now(tz_jst).isoformat(timespec='seconds'),
-        'status': status,
-        'content': json_dict
-    }    
-
-    with open(filepath, mode='w', encoding='utf-8') as f:
-        f.write(json.dumps(temp_dict, indent=4, ensure_ascii=False))
 
 def getHITContent(page_list):
 
@@ -343,17 +319,40 @@ def getHITContent(page_list):
 
 def preprocess(json_dict):
 
-    content = json_dict['content']
-    tableConfig = content.pop('tableConfig')
-
     # convert `hit_set_id` to `id`
-    for hit_set in content['bodyData']:
+    for hit_set in json_dict['bodyData']:
         hit_set['id'] = hit_set.pop('hit_set_id')
 
-    json_dict['content'] = content['bodyData']  # list of dict
-    json_dict['tableConfig'] = tableConfig
+    json_dict['content'] = json_dict.pop('bodyData')
 
     return json_dict
+
+def outputJSON(json_dict):
+
+    tz_jst = timezone(timedelta(hours=9))
+
+    current_dir = Path.cwd()
+    volume = os.environ.get('DATA_VOLUME_MTURK', 'hits')
+    target_dir = current_dir / volume / datetime.now(tz_jst).strftime('%Y%m%d')
+    target_dir.mkdir(parents=True, exist_ok=True)
+    filepath = target_dir / '{}.json'.format(datetime.now(tz_jst).strftime('%Y%m%d_%H%M%S'))
+
+    if len(json_dict['bodyData']) == 0:
+        status = 'failure'
+    else:
+        status = 'OK'
+
+    temp_dict = {
+        'service': 'AmazonMechanicalTurk',
+        'timestamp': datetime.now(tz_jst).isoformat(timespec='seconds'),
+        'status': status,
+        'content': json_dict['content'],
+        'tableConfig': json_dict['tableConfig'],
+    }
+
+    with open(filepath, mode='w', encoding='utf-8') as f:
+        f.write(json.dumps(temp_dict, indent=4, ensure_ascii=False))
+
 
 # ここから本番 -------------------------------------------
 
