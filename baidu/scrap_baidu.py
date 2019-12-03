@@ -235,15 +235,16 @@ try:
     rootURL = 'https://test.baidu.com/crowdtest/activityUnit/paperSurvey/type/2'
     getSurveyContent(driver, rootURL)
 
-    driver.quit()
-
     timestamp = datetime.now(tz_jst).isoformat(timespec='seconds')
     message = 'DATA_VOLUME_BAIDU: {}\n'.format(os.environ.get('DATA_VOLUME_BAIDU', 'ENV is not configured!'))
     print(timestamp + '...' + message)
 
 except Exception as e:
-    driver.quit()
     print(datetime.now(tz_jst).isoformat(timespec='seconds'))
     print('USER EXCEPTION ! : ' + str(e))
 
-
+try:
+    driver.quit()
+    print('Driver has stopped.\n')
+except NameError as ne:
+    print(str(ne), file=sys.stderr)
