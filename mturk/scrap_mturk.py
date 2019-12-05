@@ -337,7 +337,7 @@ def outputJSON(json_dict):
     target_dir.mkdir(parents=True, exist_ok=True)
     filepath = target_dir / '{}.json'.format(datetime.now(tz_jst).strftime('%Y%m%d_%H%M%S'))
 
-    if len(json_dict['bodyData']) == 0:
+    if len(json_dict['content']) == 0:
         status = 'failure'
     else:
         status = 'OK'

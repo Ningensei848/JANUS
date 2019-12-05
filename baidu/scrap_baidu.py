@@ -215,8 +215,7 @@ def getSurveyContent(driver, url):
 
     sleep(20 * random()) 
 
-    json_dict = json.loads(resp.text)
-    survey_list = [v for k, v in json_dict.items()]
+    survey_list = json.loads(resp.text)
 
     outputJSON(survey_list, tag="survey")
 
@@ -240,8 +239,8 @@ try:
     print(timestamp + '...' + message)
 
 except Exception as e:
-    print(datetime.now(tz_jst).isoformat(timespec='seconds'))
-    print('USER EXCEPTION ! : ' + str(e))
+    print(datetime.now(tz_jst).isoformat(timespec='seconds'), file=sys.stderr)
+    print('USER EXCEPTION ! : {}'.format(str(e)), file=sys.stderr)
 
 try:
     driver.quit()

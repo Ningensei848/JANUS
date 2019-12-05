@@ -236,14 +236,14 @@ print('USERNAME_CWORK: {}'.format(os.environ.get('USERNAME_CWORK', 'ENV is not c
 pageurl = 'https://workplace.clickworker.com/en/'
 driver = initializeDriver()
 
-# 最大で5回ログインを試行する
-for _ in range(5):
+# 最大で50回ログインを試行する
+for _ in range(50):
     try:
         loginService(pageurl, driver)
         print('login success.', file=sys.stderr)
         break
     except requests.exceptions.ConnectionError as cne:
-        print('USER EXCEPTION ! : ' + str(cne))
+        print('USER EXCEPTION ! : {}'.format(str(cne)), file=sys.stderr)
         continue
 
 try:
@@ -254,7 +254,7 @@ try:
 
 except Exception as e:
     print(datetime.now(tz_jst).isoformat(timespec='seconds'), file=sys.stderr)
-    print('USER EXCEPTION ! : ' + str(e))
+    print('USER EXCEPTION ! : {}'.format(str(e)), file=sys.stderr)
 
 try:
     driver.quit()
